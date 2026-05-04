@@ -8,7 +8,7 @@ const Layout = () => (
       <Outlet />
     </main>
     <footer className="border-t border-border/50 py-8 text-center text-sm text-muted-foreground">
-      © {new Date().getFullYear()} — Crafted with care.
+      © {new Date().getFullYear()} — David Dyberg
     </footer>
   </div>
 );
