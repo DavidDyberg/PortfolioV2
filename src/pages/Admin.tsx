@@ -50,7 +50,13 @@ const Admin = () => {
     })();
   }, [navigate]);
 
-  const startNew = () => { setEditingId(null); setForm(empty); setShowForm(true); };
+  const resetFile = () => {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const startNew = () => { setEditingId(null); setForm(empty); resetFile(); setShowForm(true); };
   const startEdit = (p: Project) => {
     setEditingId(p.id);
     setForm({
@@ -61,26 +67,60 @@ const Admin = () => {
       live_url: p.live_url ?? "",
       github_url: p.github_url ?? "",
     });
+    resetFile();
     setShowForm(true);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("project-images").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image_url: form.image_url.trim() || null,
-      live_url: form.live_url.trim() || null,
-      github_url: form.github_url.trim() || null,
-      tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
-    };
-    const { error } = editingId
-      ? await supabase.from("projects").update(payload).eq("id", editingId)
-      : await supabase.from("projects").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success(editingId ? "Project updated" : "Project added");
-    setShowForm(false);
-    load();
+    setSaving(true);
+    try {
+      let imageUrl = form.image_url.trim() || null;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        image_url: imageUrl,
+        live_url: form.live_url.trim() || null,
+        github_url: form.github_url.trim() || null,
+        tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
+      };
+      const { error } = editingId
+        ? await supabase.from("projects").update(payload).eq("id", editingId)
+        : await supabase.from("projects").insert(payload);
+      if (error) throw error;
+      toast.success(editingId ? "Project updated" : "Project added");
+      setShowForm(false);
+      resetFile();
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
