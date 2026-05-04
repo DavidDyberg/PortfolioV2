@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 
 type Project = {
   id: string;
@@ -22,12 +22,16 @@ const empty = { title: "", image_url: "", description: "", tech_stack: "", live_
 
 const Admin = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [showForm, setShowForm] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
@@ -46,7 +50,13 @@ const Admin = () => {
     })();
   }, [navigate]);
 
-  const startNew = () => { setEditingId(null); setForm(empty); setShowForm(true); };
+  const resetFile = () => {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const startNew = () => { setEditingId(null); setForm(empty); resetFile(); setShowForm(true); };
   const startEdit = (p: Project) => {
     setEditingId(p.id);
     setForm({
@@ -57,26 +67,60 @@ const Admin = () => {
       live_url: p.live_url ?? "",
       github_url: p.github_url ?? "",
     });
+    resetFile();
     setShowForm(true);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("project-images").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image_url: form.image_url.trim() || null,
-      live_url: form.live_url.trim() || null,
-      github_url: form.github_url.trim() || null,
-      tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
-    };
-    const { error } = editingId
-      ? await supabase.from("projects").update(payload).eq("id", editingId)
-      : await supabase.from("projects").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success(editingId ? "Project updated" : "Project added");
-    setShowForm(false);
-    load();
+    setSaving(true);
+    try {
+      let imageUrl = form.image_url.trim() || null;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        image_url: imageUrl,
+        live_url: form.live_url.trim() || null,
+        github_url: form.github_url.trim() || null,
+        tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
+      };
+      const { error } = editingId
+        ? await supabase.from("projects").update(payload).eq("id", editingId)
+        : await supabase.from("projects").insert(payload);
+      if (error) throw error;
+      toast.success(editingId ? "Project updated" : "Project added");
+      setShowForm(false);
+      resetFile();
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -127,8 +171,26 @@ const Admin = () => {
               <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
             <div className="md:col-span-2">
-              <Label>Image URL</Label>
-              <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+              <Label>Project image</Label>
+              <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start">
+                {(imagePreview || form.image_url) && (
+                  <div className="w-32 h-24 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
+                    <img src={imagePreview || form.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1 w-full">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90 file:cursor-pointer cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {editingId ? "Upload a new image to replace the current one (optional)." : "Choose an image from your computer."}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <Label>Description</Label>
@@ -148,10 +210,10 @@ const Admin = () => {
             </div>
           </div>
           <div className="mt-6 flex gap-3">
-            <Button type="submit" className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
-              {editingId ? "Save changes" : "Create project"}
+            <Button type="submit" disabled={saving} className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
+              {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {imageFile ? "Uploading…" : "Saving…"}</>) : (<><Upload className="w-4 h-4 mr-2" /> {editingId ? "Save changes" : "Create project"}</>)}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setShowForm(false)}>Cancel</Button>
           </div>
         </form>
       )}
