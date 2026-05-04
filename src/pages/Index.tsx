@@ -66,6 +66,8 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <Skills />
     </>
   );
 };
