@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Code2, Sparkles, Zap } from "lucide-react";
 import spaceBg from "@/assets/space-bg.jpg";
+import Skills from "@/components/Skills";
 
 const Index = () => {
   return (
@@ -14,14 +15,10 @@ const Index = () => {
 
         <div className="container relative z-10 py-24">
           <div className="max-w-3xl animate-fade-up">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/50 backdrop-blur text-xs text-muted-foreground mb-8">
-              <Sparkles className="w-3 h-3 text-primary" />
-              Available for freelance projects
-            </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-6">
               Hi, I'm <span className="text-gradient">David Dyberg</span>
               <br />
-              <span className="text-foreground/80">Frontend Developer</span>
+              <span className="text-foreground/80">Fullstack Developer</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed">
               Hi! My name is David, and I am a curious and solution oriented fullstack developer.
@@ -69,6 +66,8 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <Skills />
     </>
   );
 };
