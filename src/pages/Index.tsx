@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Code2, Sparkles, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import spaceBg from "@/assets/space-bg.jpg";
 import Skills from "@/components/Skills";
 
@@ -20,12 +20,7 @@ const Index = () => {
               <br />
               <span className="text-foreground/80">Fullstack Developer</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed">
-              Hi! My name is David, and I am a curious and solution oriented fullstack developer.
-              I'm a prestigeless person and enjoy collaborating with others. Former colleagues
-              have described me as easy to work with and quick to learn new things.
-            </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 mt-10">
               <Button asChild size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-smooth">
                 <Link to="/projects">View My Work <ArrowRight className="ml-2 w-4 h-4" /></Link>
               </Button>
@@ -39,31 +34,16 @@ const Index = () => {
 
       {/* About */}
       <section id="about" className="container py-24">
-        <div className="grid md:grid-cols-2 gap-12 items-start">
-          <div>
-            <div className="text-sm uppercase tracking-widest text-primary mb-4">About me</div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">A curious, collaborative fullstack developer.</h2>
-            <p className="text-muted-foreground text-lg leading-relaxed mb-4">
-              Hi! My name is David, and I am a curious and solution oriented fullstack developer.
-              I'm a prestigeless person and enjoy collaborating with others.
-            </p>
-            <p className="text-muted-foreground text-lg leading-relaxed">
-              Former colleagues have described me as easy to work with and quick to learn new things.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {[
-              { icon: Code2, title: "Modern Stack", desc: "React, TypeScript, Tailwind, Vite, and the latest tools." },
-              { icon: Zap, title: "Performance First", desc: "Lighthouse-perfect builds with thoughtful UX." },
-              { icon: Sparkles, title: "Polished UI", desc: "Pixel-perfect interfaces with smooth animations." },
-            ].map((f) => (
-              <div key={f.title} className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur-sm shadow-card hover:border-primary/40 transition-smooth">
-                <f.icon className="w-6 h-6 text-primary mb-3" />
-                <h3 className="font-semibold mb-1">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+        <div className="max-w-3xl">
+          <div className="text-sm uppercase tracking-widest text-primary mb-4">About me</div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">A curious, collaborative fullstack developer.</h2>
+          <p className="text-muted-foreground text-lg leading-relaxed mb-4">
+            Hi! My name is David, and I am a curious and solution oriented fullstack developer.
+            I'm a prestigeless person and enjoy collaborating with others.
+          </p>
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            Former colleagues have described me as easy to work with and quick to learn new things.
+          </p>
         </div>
       </section>
 

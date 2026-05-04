@@ -1,32 +1,15 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ExternalLink, Github } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Project = {
-  id: string;
-  title: string;
-  image_url: string | null;
-  description: string;
-  tech_stack: string[];
-  live_url: string | null;
-  github_url: string | null;
-};
+import { useProject } from "@/hooks/useProjects";
 
 const ProjectDetail = () => {
   const { id } = useParams();
-  const [project, setProject] = useState<Project | null | undefined>(undefined);
+  const { data: project, isLoading } = useProject(id);
 
-  useEffect(() => {
-    if (!id) return;
-    supabase.from("projects").select("*").eq("id", id).maybeSingle()
-      .then(({ data }) => setProject(data as Project | null));
-  }, [id]);
-
-  if (project === undefined) {
+  if (isLoading) {
     return <div className="container py-16"><Skeleton className="h-96 rounded-2xl" /></div>;
   }
   if (!project) {

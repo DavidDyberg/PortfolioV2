@@ -7,7 +7,7 @@ const skills = [
   { name: "TypeScript", url: "https://www.typescriptlang.org", icon: "https://cdn.simpleicons.org/typescript/3178C6", category: "Frontend" },
   { name: "JavaScript", url: "https://developer.mozilla.org/docs/Web/JavaScript", icon: "https://cdn.simpleicons.org/javascript/F7DF1E", category: "Frontend" },
   { name: "HTML5", url: "https://developer.mozilla.org/docs/Web/HTML", icon: "https://cdn.simpleicons.org/html5/E34F26", category: "Frontend" },
-  { name: "CSS", url: "https://developer.mozilla.org/docs/Web/CSS", icon: "https://cdn.simpleicons.org/css3/1572B6", category: "Frontend" },
+  { name: "CSS", url: "https://developer.mozilla.org/docs/Web/CSS", icon: "https://cdn.simpleicons.org/css/1572B6", category: "Frontend" },
   { name: "Tailwind CSS", url: "https://tailwindcss.com", icon: "https://cdn.simpleicons.org/tailwindcss/06B6D4", category: "Frontend" },
   // Backend
   { name: "Node.js", url: "https://nodejs.org", icon: "https://cdn.simpleicons.org/nodedotjs/5FA04E", category: "Backend" },
