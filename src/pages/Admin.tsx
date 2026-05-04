@@ -7,16 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
-
-type Project = {
-  id: string;
-  title: string;
-  image_url: string | null;
-  description: string;
-  tech_stack: string[];
-  live_url: string | null;
-  github_url: string | null;
-};
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Project,
+  useAddProject,
+  useDeleteProject,
+  useProjects,
+  useUpdateProject,
+} from "@/hooks/useProjects";
 
 const empty = { title: "", image_url: "", description: "", tech_stack: "", live_url: "", github_url: "" };
 
@@ -25,18 +32,18 @@ const Admin = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [showForm, setShowForm] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
-  const load = async () => {
-    const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
-    setProjects((data ?? []) as Project[]);
-  };
+  const { data: projects = [] } = useProjects();
+  const addProject = useAddProject();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
 
   useEffect(() => {
     (async () => {
@@ -45,7 +52,6 @@ const Admin = () => {
       const { data: roles } = await supabase
         .from("user_roles").select("role").eq("user_id", s.session.user.id);
       setIsAdmin(!!roles?.some((r) => r.role === "admin"));
-      await load();
       setReady(true);
     })();
   }, [navigate]);
@@ -108,14 +114,14 @@ const Admin = () => {
         github_url: form.github_url.trim() || null,
         tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
       };
-      const { error } = editingId
-        ? await supabase.from("projects").update(payload).eq("id", editingId)
-        : await supabase.from("projects").insert(payload);
-      if (error) throw error;
+      if (editingId) {
+        await updateProject.mutateAsync({ id: editingId, payload });
+      } else {
+        await addProject.mutateAsync(payload);
+      }
       toast.success(editingId ? "Project updated" : "Project added");
       setShowForm(false);
       resetFile();
-      load();
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
     } finally {
@@ -123,12 +129,15 @@ const Admin = () => {
     }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete this project?")) return;
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted");
-    load();
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteProject.mutateAsync(deleteTarget.id);
+      toast.success("Project deleted");
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete");
+    }
   };
 
   if (!ready) return <div className="container py-20">Loading…</div>;
@@ -140,7 +149,6 @@ const Admin = () => {
           <h1 className="text-2xl font-bold mb-3">Admin access required</h1>
           <p className="text-muted-foreground">
             Your account is signed in but doesn't have the <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">admin</code> role yet.
-            Open the backend to grant your user the admin role in the <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">user_roles</code> table.
           </p>
         </div>
       </section>
@@ -228,14 +236,40 @@ const Admin = () => {
               <h3 className="font-semibold truncate">{p.title}</h3>
               <p className="text-sm text-muted-foreground truncate">{p.description}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => startEdit(p)}><Pencil className="w-4 h-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            <Button size="icon" variant="ghost" onClick={() => startEdit(p)} aria-label="Edit project">
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(p)} aria-label="Delete project">
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
         ))}
         {projects.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">No projects yet — create your first one.</div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteProject.isPending && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">{deleteTarget?.title}</span>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteProject.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleteProject.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProject.isPending ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting…</>) : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 };
