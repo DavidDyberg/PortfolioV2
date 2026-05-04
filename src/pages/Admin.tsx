@@ -22,12 +22,16 @@ const empty = { title: "", image_url: "", description: "", tech_stack: "", live_
 
 const Admin = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [showForm, setShowForm] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
