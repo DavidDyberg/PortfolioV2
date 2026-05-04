@@ -1,27 +1,10 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-
-type Project = {
-  id: string;
-  title: string;
-  image_url: string | null;
-  description: string;
-  tech_stack: string[];
-};
+import { useProjects } from "@/hooks/useProjects";
 
 const Projects = () => {
-  const [projects, setProjects] = useState<Project[] | null>(null);
-
-  useEffect(() => {
-    supabase
-      .from("projects")
-      .select("id,title,image_url,description,tech_stack")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setProjects(data ?? []));
-  }, []);
+  const { data: projects, isLoading } = useProjects();
 
   return (
     <section className="container py-16 md:py-24">
