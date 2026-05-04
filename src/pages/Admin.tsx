@@ -210,10 +210,10 @@ const Admin = () => {
             </div>
           </div>
           <div className="mt-6 flex gap-3">
-            <Button type="submit" className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
-              {editingId ? "Save changes" : "Create project"}
+            <Button type="submit" disabled={saving} className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
+              {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {imageFile ? "Uploading…" : "Saving…"}</>) : (<><Upload className="w-4 h-4 mr-2" /> {editingId ? "Save changes" : "Create project"}</>)}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setShowForm(false)}>Cancel</Button>
           </div>
         </form>
       )}
