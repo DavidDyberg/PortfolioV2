@@ -20,7 +20,7 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/60 border-b border-border/50">
       <nav className="container flex items-center justify-between h-16">
-        <Link to="/" className="font-display text-lg font-bold text-gradient">dev.portfolio</Link>
+        <Link to="/" className="font-display text-lg font-bold text-gradient" aria-label="Home"></Link>
         <div className="flex items-center gap-6">
           <NavLink to="/" end className={linkCls}>Home</NavLink>
           <NavLink to="/projects" className={linkCls}>Projects</NavLink>
