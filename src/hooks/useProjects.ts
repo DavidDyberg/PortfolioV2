@@ -58,8 +58,17 @@ export const useAddProject = () => {
 export const useUpdateProject = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: ProjectInput }) => {
-      const { error } = await supabase.from("projects").update(payload).eq("id", id);
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: ProjectInput;
+    }) => {
+      const { error } = await supabase
+        .from("projects")
+        .update(payload)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
