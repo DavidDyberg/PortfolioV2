@@ -19,13 +19,14 @@ const Index = () => {
               Available for freelance projects
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-6">
-              Hi, I'm <span className="text-gradient">Alex Carter</span>
+              Hi, I'm <span className="text-gradient">David Dyberg</span>
               <br />
               <span className="text-foreground/80">Frontend Developer</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed">
-              I design and build polished, performant interfaces — pairing thoughtful UX
-              with modern web tech to ship products people love.
+              Hi! My name is David, and I am a curious and solution oriented fullstack developer.
+              I'm a prestigeless person and enjoy collaborating with others. Former colleagues
+              have described me as easy to work with and quick to learn new things.
             </p>
             <div className="flex flex-wrap gap-4">
               <Button asChild size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-smooth">
