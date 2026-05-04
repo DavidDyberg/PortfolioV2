@@ -14,7 +14,7 @@ const Projects = () => {
         <p className="text-muted-foreground text-lg">A collection of things I've designed and built.</p>
       </div>
 
-      {!projects ? (
+      {isLoading || !projects ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-80 rounded-2xl" />)}
         </div>
