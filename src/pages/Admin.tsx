@@ -171,8 +171,26 @@ const Admin = () => {
               <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
             <div className="md:col-span-2">
-              <Label>Image URL</Label>
-              <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+              <Label>Project image</Label>
+              <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start">
+                {(imagePreview || form.image_url) && (
+                  <div className="w-32 h-24 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
+                    <img src={imagePreview || form.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1 w-full">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90 file:cursor-pointer cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {editingId ? "Upload a new image to replace the current one (optional)." : "Choose an image from your computer."}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <Label>Description</Label>
