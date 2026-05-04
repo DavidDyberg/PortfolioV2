@@ -45,15 +45,13 @@ const Index = () => {
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div>
             <div className="text-sm uppercase tracking-widest text-primary mb-4">About me</div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Building the web, one pixel at a time.</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">A curious, collaborative fullstack developer.</h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-4">
-              I'm a frontend developer with a passion for clean code, intuitive interfaces,
-              and delightful micro-interactions. I work with React, TypeScript, and modern
-              CSS to bring ambitious ideas to life.
+              Hi! My name is David, and I am a curious and solution oriented fullstack developer.
+              I'm a prestigeless person and enjoy collaborating with others.
             </p>
             <p className="text-muted-foreground text-lg leading-relaxed">
-              When I'm not coding, you'll find me sketching UI concepts, contributing to
-              open-source, or exploring new design systems.
+              Former colleagues have described me as easy to work with and quick to learn new things.
             </p>
           </div>
           <div className="grid gap-4">
