@@ -19,13 +19,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Project,
+  deleteImagesFromStorage,
   useAddProject,
   useDeleteProject,
   useProjects,
   useUpdateProject,
 } from "@/hooks/useProjects";
 
-const empty = { title: "", image_url: "", description: "", tech_stack: "", live_url: "", github_url: "" };
+const empty = { title: "", description: "", tech_stack: "", live_url: "", github_url: "" };
+
+type PendingImage = { file: File; previewUrl: string };
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -35,8 +38,9 @@ const Admin = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [showForm, setShowForm] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [removedImages, setRemovedImages] = useState<string[]>([]);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
@@ -56,33 +60,57 @@ const Admin = () => {
     })();
   }, [navigate]);
 
-  const resetFile = () => {
-    setImageFile(null);
-    setImagePreview("");
+  const resetImages = () => {
+    pendingImages.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    setPendingImages([]);
+    setExistingImages([]);
+    setRemovedImages([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const startNew = () => { setEditingId(null); setForm(empty); resetFile(); setShowForm(true); };
+  const startNew = () => {
+    setEditingId(null);
+    setForm(empty);
+    resetImages();
+    setShowForm(true);
+  };
+
   const startEdit = (p: Project) => {
     setEditingId(p.id);
     setForm({
       title: p.title,
-      image_url: p.image_url ?? "",
       description: p.description,
       tech_stack: p.tech_stack.join(", "),
       live_url: p.live_url ?? "",
       github_url: p.github_url ?? "",
     });
-    resetFile();
+    resetImages();
+    setExistingImages(p.images ?? []);
     setShowForm(true);
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const onFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    const valid = files.filter((f) => f.type.startsWith("image/"));
+    if (valid.length !== files.length) toast.error("Only image files are allowed");
+    setPendingImages((prev) => [
+      ...prev,
+      ...valid.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+    ]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removePending = (idx: number) => {
+    setPendingImages((prev) => {
+      URL.revokeObjectURL(prev[idx].previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const removeExisting = (url: string) => {
+    setExistingImages((prev) => prev.filter((u) => u !== url));
+    setRemovedImages((prev) => [...prev, url]);
   };
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -102,26 +130,34 @@ const Admin = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      let imageUrl = form.image_url.trim() || null;
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      const uploaded: string[] = [];
+      for (const p of pendingImages) {
+        uploaded.push(await uploadImage(p.file));
       }
+      const images = [...existingImages, ...uploaded];
+
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
-        image_url: imageUrl,
+        images,
         live_url: form.live_url.trim() || null,
         github_url: form.github_url.trim() || null,
         tech_stack: form.tech_stack.split(",").map((s) => s.trim()).filter(Boolean),
       };
+
       if (editingId) {
         await updateProject.mutateAsync({ id: editingId, payload });
+        if (removedImages.length) {
+          try { await deleteImagesFromStorage(removedImages); } catch (err: any) {
+            toast.error("Project saved, but some images could not be removed from storage");
+          }
+        }
       } else {
         await addProject.mutateAsync(payload);
       }
       toast.success(editingId ? "Project updated" : "Project added");
       setShowForm(false);
-      resetFile();
+      resetImages();
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
     } finally {
@@ -132,11 +168,11 @@ const Admin = () => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await deleteProject.mutateAsync(deleteTarget.id);
-      toast.success("Project deleted");
+      await deleteProject.mutateAsync(deleteTarget);
+      toast.success("Project and images deleted");
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to delete");
+      toast.error(err.message ?? "Failed to delete project (images may not have been cleaned up)");
     }
   };
 
@@ -178,28 +214,55 @@ const Admin = () => {
               <Label>Title</Label>
               <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
+
             <div className="md:col-span-2">
-              <Label>Project image</Label>
-              <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start">
-                {(imagePreview || form.image_url) && (
-                  <div className="w-32 h-24 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
-                    <img src={imagePreview || form.image_url} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1 w-full">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={onFileChange}
-                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90 file:cursor-pointer cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {editingId ? "Upload a new image to replace the current one (optional)." : "Choose an image from your computer."}
-                  </p>
+              <Label>Project images</Label>
+              {(existingImages.length > 0 || pendingImages.length > 0) && (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {existingImages.map((url) => (
+                    <div key={url} className="relative group rounded-lg overflow-hidden border border-border bg-muted aspect-[4/3]">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeExisting(url)}
+                        className="absolute top-1 right-1 p-1 rounded-md bg-background/80 hover:bg-destructive hover:text-destructive-foreground transition-smooth"
+                        aria-label="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {pendingImages.map((p, i) => (
+                    <div key={p.previewUrl} className="relative group rounded-lg overflow-hidden border border-primary/40 bg-muted aspect-[4/3]">
+                      <img src={p.previewUrl} alt="" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 left-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary text-primary-foreground">New</span>
+                      <button
+                        type="button"
+                        onClick={() => removePending(i)}
+                        className="absolute top-1 right-1 p-1 rounded-md bg-background/80 hover:bg-destructive hover:text-destructive-foreground transition-smooth"
+                        aria-label="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+              )}
+              <div className="mt-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onFilesChange}
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90 file:cursor-pointer cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  You can select multiple images. Removed images will be deleted from storage on save.
+                </p>
               </div>
             </div>
+
             <div className="md:col-span-2">
               <Label>Description</Label>
               <Textarea required rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -219,7 +282,7 @@ const Admin = () => {
           </div>
           <div className="mt-6 flex gap-3">
             <Button type="submit" disabled={saving} className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
-              {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {imageFile ? "Uploading…" : "Saving…"}</>) : (<><Upload className="w-4 h-4 mr-2" /> {editingId ? "Save changes" : "Create project"}</>)}
+              {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {pendingImages.length ? "Uploading…" : "Saving…"}</>) : (<><Upload className="w-4 h-4 mr-2" /> {editingId ? "Save changes" : "Create project"}</>)}
             </Button>
             <Button type="button" variant="ghost" disabled={saving} onClick={() => setShowForm(false)}>Cancel</Button>
           </div>
@@ -229,8 +292,11 @@ const Admin = () => {
       <div className="grid gap-4">
         {projects.map((p) => (
           <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:border-primary/40 transition-smooth">
-            <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0">
-              {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+            <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0 relative">
+              {p.images?.[0] && <img src={p.images[0]} alt="" className="w-full h-full object-cover" />}
+              {p.images?.length > 1 && (
+                <span className="absolute bottom-0.5 right-0.5 text-[10px] px-1 rounded bg-background/80 text-foreground">+{p.images.length - 1}</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold truncate">{p.title}</h3>
@@ -257,7 +323,7 @@ const Admin = () => {
             <AlertDialogTitle>Delete project?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{" "}
-              <span className="font-medium text-foreground">{deleteTarget?.title}</span>? This action cannot be undone.
+              <span className="font-medium text-foreground">{deleteTarget?.title}</span>? All associated images will also be removed from storage. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

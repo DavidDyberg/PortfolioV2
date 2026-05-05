@@ -37,9 +37,9 @@ const Projects = () => {
               className="group rounded-2xl overflow-hidden border border-border bg-card shadow-card hover:border-primary/50 hover:-translate-y-1 transition-smooth"
             >
               <div className="aspect-[16/10] overflow-hidden bg-muted">
-                {p.image_url ? (
+                {p.images?.[0] ? (
                   <img
-                    src={p.image_url}
+                    src={p.images[0]}
                     alt={p.title}
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-smooth"
