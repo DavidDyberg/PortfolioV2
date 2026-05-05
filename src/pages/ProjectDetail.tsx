@@ -25,14 +25,18 @@ const ProjectDetail = () => {
       <div className="flex flex-wrap gap-2 mb-8">
         {project.tech_stack.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
       </div>
-      {project.image_url && (
-        <div className="rounded-2xl overflow-hidden border border-border shadow-card mb-10 bg-muted/40 flex items-center justify-center p-4">
-          <img
-            src={project.image_url}
-            alt={project.title}
-            loading="lazy"
-            className="max-h-[500px] w-auto max-w-full object-contain rounded-lg"
-          />
+      {project.images?.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 mb-10">
+          {project.images.map((src, i) => (
+            <div key={src} className="rounded-2xl overflow-hidden border border-border shadow-card bg-muted/40 flex items-center justify-center p-4">
+              <img
+                src={src}
+                alt={`${project.title} – image ${i + 1}`}
+                loading="lazy"
+                className="max-h-[500px] w-auto max-w-full object-contain rounded-lg"
+              />
+            </div>
+          ))}
         </div>
       )}
       <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line mb-10">{project.description}</p>
