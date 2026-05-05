@@ -234,7 +234,9 @@ const Admin = () => {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold truncate">{p.title}</h3>
-              <p className="text-sm text-muted-foreground truncate">{p.description}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2 break-words" title={p.description}>
+                {p.description}
+              </p>
             </div>
             <Button size="icon" variant="ghost" onClick={() => startEdit(p)} aria-label="Edit project">
               <Pencil className="w-4 h-4" />

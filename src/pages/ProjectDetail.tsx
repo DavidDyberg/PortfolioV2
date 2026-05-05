@@ -26,8 +26,13 @@ const ProjectDetail = () => {
         {project.tech_stack.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
       </div>
       {project.image_url && (
-        <div className="rounded-2xl overflow-hidden border border-border shadow-card mb-10">
-          <img src={project.image_url} alt={project.title} className="w-full" />
+        <div className="rounded-2xl overflow-hidden border border-border shadow-card mb-10 bg-muted/40 flex items-center justify-center p-4">
+          <img
+            src={project.image_url}
+            alt={project.title}
+            loading="lazy"
+            className="max-h-[500px] w-auto max-w-full object-contain rounded-lg"
+          />
         </div>
       )}
       <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line mb-10">{project.description}</p>
