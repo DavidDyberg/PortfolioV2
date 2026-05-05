@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ExternalLink, Github } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/hooks/useProjects";
+import { ImageGallery } from "@/components/ImageGallery";
 
 const ProjectDetail = () => {
   const { id } = useParams();
