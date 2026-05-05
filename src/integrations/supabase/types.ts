@@ -20,7 +20,7 @@ export type Database = {
           description: string
           github_url: string | null
           id: string
-          image_url: string | null
+          images: string[]
           live_url: string | null
           tech_stack: string[]
           title: string
@@ -30,7 +30,7 @@ export type Database = {
           description: string
           github_url?: string | null
           id?: string
-          image_url?: string | null
+          images?: string[]
           live_url?: string | null
           tech_stack?: string[]
           title: string
@@ -40,7 +40,7 @@ export type Database = {
           description?: string
           github_url?: string | null
           id?: string
-          image_url?: string | null
+          images?: string[]
           live_url?: string | null
           tech_stack?: string[]
           title?: string
