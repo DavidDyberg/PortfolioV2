@@ -22,6 +22,7 @@ export type Database = {
           id: string
           images: string[]
           live_url: string | null
+          sort_order: number
           tech_stack: string[]
           title: string
         }
@@ -32,6 +33,7 @@ export type Database = {
           id?: string
           images?: string[]
           live_url?: string | null
+          sort_order?: number
           tech_stack?: string[]
           title: string
         }
@@ -42,6 +44,7 @@ export type Database = {
           id?: string
           images?: string[]
           live_url?: string | null
+          sort_order?: number
           tech_stack?: string[]
           title?: string
         }
