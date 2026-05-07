@@ -66,6 +66,24 @@ const Admin = () => {
   const addProject = useAddProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const reorderProjects = useReorderProjects();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(projects, oldIndex, newIndex);
+    reorderProjects.mutate(reordered, {
+      onError: (err: any) => toast.error(err.message ?? "Failed to save order"),
+    });
+  };
 
   useEffect(() => {
     (async () => {
