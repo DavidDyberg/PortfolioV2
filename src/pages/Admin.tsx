@@ -359,7 +359,23 @@ const Admin = () => {
 
             <div className="md:col-span-2">
               <Label>Description</Label>
-              <Textarea required rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <Textarea
+                required
+                rows={4}
+                value={form.description}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = "auto";
+                    el.style.height = `${el.scrollHeight}px`;
+                  }
+                }}
+                className="resize-none overflow-hidden"
+              />
             </div>
             <div className="md:col-span-2">
               <Label>Tech stack (comma-separated)</Label>
