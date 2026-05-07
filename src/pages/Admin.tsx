@@ -48,6 +48,64 @@ const empty = { title: "", description: "", tech_stack: "", live_url: "", github
 
 type PendingImage = { file: File; previewUrl: string };
 
+const SortableProjectRow = ({
+  project,
+  onEdit,
+  onDelete,
+}: {
+  project: Project;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 sm:gap-4 p-4 rounded-xl border bg-card/50 transition-smooth select-none ${
+        isDragging ? "border-primary shadow-lg scale-[1.01]" : "border-border hover:border-primary/40"
+      }`}
+    >
+      <button
+        type="button"
+        className="touch-none cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground hover:text-foreground transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0 relative">
+        {project.images?.[0] && <img src={project.images[0]} alt="" className="w-full h-full object-cover" />}
+        {project.images?.length > 1 && (
+          <span className="absolute bottom-0.5 right-0.5 text-[10px] px-1 rounded bg-background/80 text-foreground">
+            +{project.images.length - 1}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold truncate">{project.title}</h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 break-words" title={project.description}>
+          {project.description}
+        </p>
+      </div>
+      <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Edit project">
+        <Pencil className="w-4 h-4" />
+      </Button>
+      <Button size="icon" variant="ghost" onClick={onDelete} aria-label="Delete project">
+        <Trash2 className="w-4 h-4 text-destructive" />
+      </Button>
+    </div>
+  );
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
