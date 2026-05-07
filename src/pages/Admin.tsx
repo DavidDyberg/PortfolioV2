@@ -6,7 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,12 +40,71 @@ import {
   useAddProject,
   useDeleteProject,
   useProjects,
+  useReorderProjects,
   useUpdateProject,
 } from "@/hooks/useProjects";
 
 const empty = { title: "", description: "", tech_stack: "", live_url: "", github_url: "" };
 
 type PendingImage = { file: File; previewUrl: string };
+
+const SortableProjectRow = ({
+  project,
+  onEdit,
+  onDelete,
+}: {
+  project: Project;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 sm:gap-4 p-4 rounded-xl border bg-card/50 transition-smooth select-none ${
+        isDragging ? "border-primary shadow-lg scale-[1.01]" : "border-border hover:border-primary/40"
+      }`}
+    >
+      <button
+        type="button"
+        className="touch-none cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground hover:text-foreground transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0 relative">
+        {project.images?.[0] && <img src={project.images[0]} alt="" className="w-full h-full object-cover" />}
+        {project.images?.length > 1 && (
+          <span className="absolute bottom-0.5 right-0.5 text-[10px] px-1 rounded bg-background/80 text-foreground">
+            +{project.images.length - 1}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold truncate">{project.title}</h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 break-words" title={project.description}>
+          {project.description}
+        </p>
+      </div>
+      <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Edit project">
+        <Pencil className="w-4 h-4" />
+      </Button>
+      <Button size="icon" variant="ghost" onClick={onDelete} aria-label="Delete project">
+        <Trash2 className="w-4 h-4 text-destructive" />
+      </Button>
+    </div>
+  );
+};
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -48,6 +124,24 @@ const Admin = () => {
   const addProject = useAddProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const reorderProjects = useReorderProjects();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(projects, oldIndex, newIndex);
+    reorderProjects.mutate(reordered, {
+      onError: (err: any) => toast.error(err.message ?? "Failed to save order"),
+    });
+  };
 
   useEffect(() => {
     (async () => {
@@ -289,33 +383,27 @@ const Admin = () => {
         </form>
       )}
 
-      <div className="grid gap-4">
-        {projects.map((p) => (
-          <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:border-primary/40 transition-smooth">
-            <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0 relative">
-              {p.images?.[0] && <img src={p.images[0]} alt="" className="w-full h-full object-cover" />}
-              {p.images?.length > 1 && (
-                <span className="absolute bottom-0.5 right-0.5 text-[10px] px-1 rounded bg-background/80 text-foreground">+{p.images.length - 1}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate">{p.title}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 break-words" title={p.description}>
-                {p.description}
-              </p>
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => startEdit(p)} aria-label="Edit project">
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(p)} aria-label="Delete project">
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-4">
+            {projects.map((p) => (
+              <SortableProjectRow
+                key={p.id}
+                project={p}
+                onEdit={() => startEdit(p)}
+                onDelete={() => setDeleteTarget(p)}
+              />
+            ))}
+            {projects.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">No projects yet — create your first one.</div>
+            )}
           </div>
-        ))}
-        {projects.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">No projects yet — create your first one.</div>
-        )}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteProject.isPending && setDeleteTarget(null)}>
         <AlertDialogContent>

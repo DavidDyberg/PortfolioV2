@@ -9,10 +9,11 @@ export type Project = {
   tech_stack: string[];
   live_url: string | null;
   github_url: string | null;
+  sort_order: number;
   created_at?: string;
 };
 
-export type ProjectInput = Omit<Project, "id" | "created_at">;
+export type ProjectInput = Omit<Project, "id" | "created_at" | "sort_order"> & { sort_order?: number };
 
 const PROJECTS_KEY = ["projects"] as const;
 const BUCKET = "project-images";
@@ -40,11 +41,38 @@ export const useProjects = () =>
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Project[];
     },
   });
+
+export const useReorderProjects = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ordered: Project[]) => {
+      await Promise.all(
+        ordered.map((p, idx) =>
+          supabase.from("projects").update({ sort_order: idx + 1 }).eq("id", p.id)
+        )
+      );
+    },
+    onMutate: async (ordered) => {
+      await qc.cancelQueries({ queryKey: PROJECTS_KEY });
+      const previous = qc.getQueryData<Project[]>(PROJECTS_KEY);
+      qc.setQueryData<Project[]>(
+        PROJECTS_KEY,
+        ordered.map((p, idx) => ({ ...p, sort_order: idx + 1 }))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(PROJECTS_KEY, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+};
 
 export const useProject = (id: string | undefined) =>
   useQuery({
@@ -65,7 +93,16 @@ export const useAddProject = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: ProjectInput) => {
-      const { error } = await supabase.from("projects").insert(payload);
+      const { data: maxRow } = await supabase
+        .from("projects")
+        .select("sort_order")
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextOrder = (maxRow?.sort_order ?? 0) + 1;
+      const { error } = await supabase
+        .from("projects")
+        .insert({ ...payload, sort_order: nextOrder });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
