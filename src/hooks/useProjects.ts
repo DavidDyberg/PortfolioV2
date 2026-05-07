@@ -93,7 +93,16 @@ export const useAddProject = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: ProjectInput) => {
-      const { error } = await supabase.from("projects").insert(payload);
+      const { data: maxRow } = await supabase
+        .from("projects")
+        .select("sort_order")
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextOrder = (maxRow?.sort_order ?? 0) + 1;
+      const { error } = await supabase
+        .from("projects")
+        .insert({ ...payload, sort_order: nextOrder });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
