@@ -307,33 +307,27 @@ const Admin = () => {
         </form>
       )}
 
-      <div className="grid gap-4">
-        {projects.map((p) => (
-          <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:border-primary/40 transition-smooth">
-            <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted shrink-0 relative">
-              {p.images?.[0] && <img src={p.images[0]} alt="" className="w-full h-full object-cover" />}
-              {p.images?.length > 1 && (
-                <span className="absolute bottom-0.5 right-0.5 text-[10px] px-1 rounded bg-background/80 text-foreground">+{p.images.length - 1}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate">{p.title}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 break-words" title={p.description}>
-                {p.description}
-              </p>
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => startEdit(p)} aria-label="Edit project">
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(p)} aria-label="Delete project">
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-4">
+            {projects.map((p) => (
+              <SortableProjectRow
+                key={p.id}
+                project={p}
+                onEdit={() => startEdit(p)}
+                onDelete={() => setDeleteTarget(p)}
+              />
+            ))}
+            {projects.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">No projects yet — create your first one.</div>
+            )}
           </div>
-        ))}
-        {projects.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">No projects yet — create your first one.</div>
-        )}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteProject.isPending && setDeleteTarget(null)}>
         <AlertDialogContent>
