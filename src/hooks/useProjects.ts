@@ -41,11 +41,38 @@ export const useProjects = () =>
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Project[];
     },
   });
+
+export const useReorderProjects = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ordered: Project[]) => {
+      await Promise.all(
+        ordered.map((p, idx) =>
+          supabase.from("projects").update({ sort_order: idx + 1 }).eq("id", p.id)
+        )
+      );
+    },
+    onMutate: async (ordered) => {
+      await qc.cancelQueries({ queryKey: PROJECTS_KEY });
+      const previous = qc.getQueryData<Project[]>(PROJECTS_KEY);
+      qc.setQueryData<Project[]>(
+        PROJECTS_KEY,
+        ordered.map((p, idx) => ({ ...p, sort_order: idx + 1 }))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(PROJECTS_KEY, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+};
 
 export const useProject = (id: string | undefined) =>
   useQuery({
