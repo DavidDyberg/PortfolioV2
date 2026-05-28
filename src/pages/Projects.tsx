@@ -33,7 +33,8 @@ const Projects = () => {
           {projects.map((p) => (
             <Link
               key={p.id}
-              to={`/projects/${p.id}`}
+              to={`/projects/${p.slug}`}
+
               className="group rounded-2xl overflow-hidden border border-border bg-card shadow-card hover:border-primary/50 hover:-translate-y-1 transition-smooth"
             >
               <div className="aspect-[16/10] overflow-hidden bg-muted">
