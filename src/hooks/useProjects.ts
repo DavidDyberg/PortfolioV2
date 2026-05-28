@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { slugify } from "@/lib/slug";
 
 export type Project = {
   id: string;
   title: string;
+  slug: string;
   images: string[];
   description: string;
   tech_stack: string[];
@@ -13,7 +15,9 @@ export type Project = {
   created_at?: string;
 };
 
-export type ProjectInput = Omit<Project, "id" | "created_at" | "sort_order"> & { sort_order?: number };
+export type ProjectInput = Omit<Project, "id" | "created_at" | "sort_order" | "slug"> & {
+  sort_order?: number;
+};
 
 const PROJECTS_KEY = ["projects"] as const;
 const BUCKET = "project-images";
@@ -32,6 +36,24 @@ export const deleteImagesFromStorage = async (urls: string[]) => {
   if (paths.length === 0) return;
   const { error } = await supabase.storage.from(BUCKET).remove(paths);
   if (error) throw error;
+};
+
+/** Build a slug unique within the projects table, excluding optional id. */
+const buildUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
+  const base = slugify(title);
+  let candidate = base;
+  let suffix = 1;
+  // Try base, base-2, base-3 until unique
+  // (Race conditions are mitigated by the unique constraint at the DB level.)
+  while (true) {
+    let query = supabase.from("projects").select("id").eq("slug", candidate).limit(1);
+    if (excludeId) query = query.neq("id", excludeId);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || data.length === 0) return candidate;
+    suffix += 1;
+    candidate = `${base}-${suffix}`;
+  }
 };
 
 export const useProjects = () =>
@@ -74,15 +96,15 @@ export const useReorderProjects = () => {
   });
 };
 
-export const useProject = (id: string | undefined) =>
+export const useProjectBySlug = (slug: string | undefined) =>
   useQuery({
-    queryKey: ["projects", id],
-    enabled: !!id,
+    queryKey: ["projects", "slug", slug],
+    enabled: !!slug,
     queryFn: async (): Promise<Project | null> => {
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("id", id!)
+        .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
       return (data as Project) ?? null;
@@ -100,9 +122,10 @@ export const useAddProject = () => {
         .limit(1)
         .maybeSingle();
       const nextOrder = (maxRow?.sort_order ?? 0) + 1;
+      const slug = await buildUniqueSlug(payload.title);
       const { error } = await supabase
         .from("projects")
-        .insert({ ...payload, sort_order: nextOrder });
+        .insert({ ...payload, slug, sort_order: nextOrder });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
@@ -113,7 +136,11 @@ export const useUpdateProject = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: ProjectInput }) => {
-      const { error } = await supabase.from("projects").update(payload).eq("id", id);
+      const slug = await buildUniqueSlug(payload.title, id);
+      const { error } = await supabase
+        .from("projects")
+        .update({ ...payload, slug })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
@@ -124,7 +151,6 @@ export const useDeleteProject = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (project: Project) => {
-      // Delete images first; if it fails, abort project deletion.
       if (project.images?.length) {
         await deleteImagesFromStorage(project.images);
       }
