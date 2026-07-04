@@ -59,6 +59,8 @@ const buildUniqueSlug = async (title: string, excludeId?: string): Promise<strin
 export const useProjects = () =>
   useQuery({
     queryKey: PROJECTS_KEY,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
     queryFn: async (): Promise<Project[]> => {
       const { data, error } = await supabase
         .from("projects")
