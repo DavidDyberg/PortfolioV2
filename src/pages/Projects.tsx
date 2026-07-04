@@ -2,9 +2,12 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/hooks/useProjects";
+import { useSlowLoading } from "@/hooks/useSlowLoading";
+import { WakingUpCard } from "@/components/WakingUpCard";
 
 const Projects = () => {
   const { data: projects, isLoading } = useProjects();
+  const showWakingUp = useSlowLoading(isLoading, 8000);
 
   return (
     <section className="container py-16 md:py-24">
@@ -18,7 +21,9 @@ const Projects = () => {
         </p>
       </div>
 
-      {isLoading || !projects ? (
+      {showWakingUp && (isLoading || !projects) ? (
+        <WakingUpCard />
+      ) : isLoading || !projects ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-80 rounded-2xl" />
