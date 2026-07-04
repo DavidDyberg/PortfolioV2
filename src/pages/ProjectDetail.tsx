@@ -5,14 +5,20 @@ import { ArrowLeft, ExternalLink, Github } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectBySlug } from "@/hooks/useProjects";
 import { ImageGallery } from "@/components/ImageGallery";
+import { useSlowLoading } from "@/hooks/useSlowLoading";
+import { WakingUpCard } from "@/components/WakingUpCard";
 
 const ProjectDetail = () => {
   const { slug } = useParams();
   const { data: project, isLoading } = useProjectBySlug(slug);
-
+  const showWakingUp = useSlowLoading(isLoading, 8000);
 
   if (isLoading) {
-    return <div className="container py-16"><Skeleton className="h-96 rounded-2xl" /></div>;
+    return (
+      <div className="container py-16">
+        {showWakingUp ? <WakingUpCard /> : <Skeleton className="h-96 rounded-2xl" />}
+      </div>
+    );
   }
   if (!project) {
     return <div className="container py-24 text-center"><p className="text-muted-foreground">Project not found.</p></div>;
