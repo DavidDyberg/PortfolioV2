@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { toast } from "sonner";
 import { GripVertical, Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import {
@@ -358,23 +358,12 @@ const Admin = () => {
             </div>
 
             <div className="md:col-span-2">
-              <Label>Description</Label>
-              <Textarea
+              <Label htmlFor="project-description">Description</Label>
+              <MarkdownEditor
+                id="project-description"
                 required
-                rows={4}
                 value={form.description}
-                onChange={(e) => {
-                  setForm({ ...form, description: e.target.value });
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                ref={(el) => {
-                  if (el) {
-                    el.style.height = "auto";
-                    el.style.height = `${el.scrollHeight}px`;
-                  }
-                }}
-                className="resize-none overflow-hidden"
+                onChange={(description) => setForm({ ...form, description })}
               />
             </div>
             <div className="md:col-span-2">
