@@ -7,6 +7,7 @@ import { useProjectBySlug } from "@/hooks/useProjects";
 import { ImageGallery } from "@/components/ImageGallery";
 import { useSlowLoading } from "@/hooks/useSlowLoading";
 import { WakingUpCard } from "@/components/WakingUpCard";
+import { Markdown } from "@/components/Markdown";
 
 const ProjectDetail = () => {
   const { slug } = useParams();
@@ -36,7 +37,7 @@ const ProjectDetail = () => {
       {project.images?.length > 0 && (
         <ImageGallery images={project.images} alt={project.title} />
       )}
-      <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line mb-10">{project.description}</p>
+      <Markdown content={project.description} className="mb-10" />
       <div className="flex flex-wrap gap-4">
         {project.live_url && (
           <Button asChild className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth">
